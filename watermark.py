@@ -87,7 +87,6 @@ def _get_watermark_position(image_size, watermark_size, config):
         watermark_position[1] = int(float(valid_y_max) / 2.0)
     elif config.vertical_anchor == 'random':
         watermark_position[1] = randint(0, valid_y_max)
-    print(watermark_position)
     return watermark_position
 
 
@@ -115,7 +114,7 @@ def apply_watermark_to_images(watermark_image, images_list,
     print("Processing Images:")
     for image_path in images_list:
         image_filename = os.path.basename(image_path)
-        output_filename = image_filename.split(".")[0] + ".png"
+        output_filename = ".".join(image_filename.split("."))[:-1] + ".png"
         output_path = os.path.join(output_directory, output_filename)
         apply_watermark_to_image(watermark_image, image_path, output_path,
                                  config)
@@ -154,7 +153,6 @@ def create_folder(output_folder_path):
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='Naval Fate 2.0')
-    print(arguments)
     
     # Load config
     config = config_from_arguments(arguments)

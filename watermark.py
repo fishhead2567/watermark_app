@@ -7,9 +7,10 @@ Usage:
   watermark.py <input_images> <output_folder> <watermark> [options]
   
 Options:
-  --show                    Whether to show each generated image
-  --vertical_anchor = [top, bottom, center, random] Where to anchor the watermark vertically
-  --horizontal_anchor = [left, right, center, random] where to anchor the watermark horizontally
+  --show                       Whether to show each generated image
+  --vertical_anchor=<string>   [top, bottom, center, random] Where to anchor the watermark vertically
+  --horizontal_anchor=<string> [left, right, center, random] where to anchor the watermark horizontally
+  --alpha_scale=<int>          scale the transparency of the watermark [default: 1.0]
 """
 
 
@@ -22,9 +23,7 @@ from types import SimpleNamespace
 
 from docopt import docopt
 
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+from PIL import Image, ImageChops
 
 VALID_VERTICAL = ['bottom', 'top', 'center', 'random']
 VALID_HORIZONTAL = ['right', 'left', 'center', 'random']
@@ -36,7 +35,8 @@ def config_from_arguments(arguments):
         watermark_file=None,
         show_images=False,
         vertical_anchor=VALID_VERTICAL[0],
-        horizontal_anchor=VALID_HORIZONTAL[0])
+        horizontal_anchor=VALID_HORIZONTAL[0],
+        alpha_scale=1.0)
     config.input_file_regex = arguments["<input_images>"]
     config.output_directory = arguments["<output_folder>"]
     config.watermark_file = arguments["<watermark>"]
@@ -51,7 +51,10 @@ def config_from_arguments(arguments):
     else:
         print("Using default horizontal anchor position: %s" % (
             VALID_HORIZONTAL[0]))
-    
+    try:
+        config.alpha_scale = float(arguments["--alpha_scale"])
+    except ValueError:
+        print("Invalid alpha scale value")
     return config
 
 def load_watermark(watermark_image_path):
@@ -94,7 +97,7 @@ def apply_watermark_to_image(watermark_image, filename_input, filename_output, c
         print("    %s" % (filename_input))
         image = None
         try:
-            image = Image.open(filename_input)
+            image = Image.open(filename_input).convert('RGBA')
         except Exception as e:
             print("Could not load image: %s. Error was: %s" % (
                 filename_input, str(e)))
@@ -103,8 +106,13 @@ def apply_watermark_to_image(watermark_image, filename_input, filename_output, c
                                                      watermark_image.size,
                                                      config)
         output_image =  Image.new('RGBA', image.size, (0,0,0,0))
-        output_image .paste(image, (0,0))
-        output_image.paste(watermark, watermark_position, mask=watermark)
+        watermark_alpha = watermark.split()[-1]
+        alpha_scale = ImageChops.constant(watermark_alpha, int (255.0 * config.alpha_scale))
+        if config.alpha_scale < .99:
+            watermark_alpha = ImageChops.multiply(watermark_alpha, alpha_scale)
+        output_image.paste(watermark, watermark_position, mask=watermark_alpha)
+        output_image = Image.alpha_composite(image, output_image)
+        
         if config.show_images:
             output_image.show()
         output_image.save(filename_output)

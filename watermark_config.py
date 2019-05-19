@@ -12,6 +12,8 @@ class WatermarkConfig:
         self.watermark_locations = []
         self.width_percentage = 0.1
         self.height_percentage = 0.1
+        self.alpha_scale = 1.0
+        self.show_generated_images = False
 
     def reset():
         self.files_to_watermark = []
@@ -20,6 +22,8 @@ class WatermarkConfig:
         self.watermark_locations = []
         self.width_percentage = 0.1
         self.height_percentage = 0.1
+        self.alpha_scale = 1.0
+        self.show_generated_images = False
 
     def check_valid(self):
         error_messages = []

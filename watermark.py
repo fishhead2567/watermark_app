@@ -1,179 +1,127 @@
-"""watermark
-
-Applies a watermark to a set of images. Note: input_images, output_folder 
-and "watermark" must be in quotes!
-
-Usage:
-  watermark.py <input_images> <output_folder> <watermark> [options]
-  
-Options:
-  --show                       Whether to show each generated image
-  --vertical_anchor=<string>   [top, bottom, center, random] Where to anchor the watermark vertically
-  --horizontal_anchor=<string> [left, right, center, random] where to anchor the watermark horizontally
-  --alpha_scale=<int>          scale the transparency of the watermark [default: 1.0]
-"""
-
-
-import glob
 import os
-import sys
-
-from random import randint
-from types import SimpleNamespace
-
-from docopt import docopt
+from tempfile import TemporaryDirectory
 
 from PIL import Image, ImageChops
+
+from watermark_config import WatermarkConfig
 
 VALID_VERTICAL = ['bottom', 'top', 'center', 'random']
 VALID_HORIZONTAL = ['right', 'left', 'center', 'random']
 
-def config_from_arguments(arguments):
-    config = SimpleNamespace(
-        input_file_regex=None,
-        output_directory=None,
-        watermark_file=None,
-        show_images=False,
-        vertical_anchor=VALID_VERTICAL[0],
-        horizontal_anchor=VALID_HORIZONTAL[0],
-        alpha_scale=1.0)
-    config.input_file_regex = arguments["<input_images>"]
-    config.output_directory = arguments["<output_folder>"]
-    config.watermark_file = arguments["<watermark>"]
-    if arguments["--show"] is not None:
-        config.show_images = arguments["--show"]
-    if arguments["--vertical_anchor"] in VALID_VERTICAL:
-        config.vertical_anchor = arguments["--vertical_anchor"]
-    else:
-        print("Using default vertical anchor position: %s" % VALID_VERTICAL[0])
-    if arguments["--horizontal_anchor"] in VALID_HORIZONTAL:
-        config.horizontal_anchor = arguments["--horizontal_anchor"]
-    else:
-        print("Using default horizontal anchor position: %s" % (
-            VALID_HORIZONTAL[0]))
-    try:
-        config.alpha_scale = float(arguments["--alpha_scale"])
-    except ValueError:
-        print("Invalid alpha scale value")
-    return config
 
-def load_watermark(watermark_image_path):
-    watermark = None
+def load_image(image_path):
+    # Loads the watermark image.
+    image = None
+    error_messages = []
     try:
-        watermark = Image.open(watermark_image_path)
- 
+        image = Image.open(image_path)
     except:
-        print("Watermark failed to load. Is %s a valid file? " % (
-            watermark_image_path))
-        sys.exit(1)
-    return watermark
+        error_messages.append("Image failed to load. Is %s a valid file? " %
+                              (image_path))
+        return (None, error_messages)
+    return (image, error_messages)
 
-def _get_watermark_position(image_size, watermark_size, config):
+
+def maybe_resize_image(watermark_config, input_image, watermark_image):
+    # Resize the input image to match the dimensions of the watermark.
+    # Determine if scaling is needed
+    scaling_needed = False
+    minimal_ratio = 1.0
+    watermark_x_ratio = watermark_image.size[0] / input_image.size[0]
+    watermark_y_ratio = watermark_image.size[1] / input_image.size[1]
+    if watermark_x_ratio < watermark_config.width_percentage:
+        scaling_needed = True
+        x_target = watermark_image.size[0] / watermark_config.width_percentage
+        x_scaling = x_target / input_image.size[0]
+        if x_scaling < minimal_ratio:
+            minimal_ratio = x_scaling
+    if watermark_y_ratio < watermark_config.height_percentage:
+        scaling_needed = True
+        y_target = watermark_image.size[1] / watermark_config.height_percentage
+        y_scaling = y_target / input_image.size[1]
+        if y_scaling < minimal_ratio:
+            minimal_ratio = y_scaling
+    if scaling_needed:
+        # print("scaling image", minimal_ratio)
+        new_image_size = (int(input_image.size[0] * minimal_ratio),
+                          int(input_image.size[1] * minimal_ratio))
+        output_image = input_image.resize(new_image_size)
+        return (output_image, [])
+    return (input_image, [])
+
+
+def get_watermark_position(anchor, image_size, watermark_size):
+    vertical_anchor, horizontal_anchor = anchor.split("-")
+
+    error_messages = []
     valid_x_max = image_size[0] - watermark_size[0]
     valid_y_max = image_size[1] - watermark_size[1]
     if valid_x_max < 0 or valid_y_max < 0:
-        print("Watermark was bigger than image!")
-        print("Image W: %d, H: %d" % (image_size[0], image_size[1]))
-        print("WM W: %d, H: %d" % (watermark_size[0], watermark_size[1]))
-        sys.exit(1)
-    watermark_position = [0,0]
-    
-    if config.horizontal_anchor == 'right':
+        error_messages += [
+            "Watermark was bigger than image!",
+            "Image W: %d, H: %d" % (image_size[0], image_size[1]),
+            "WM W: %d, H: %d" % (watermark_size[0], watermark_size[1])
+        ]
+        return (None, error_messages)
+    watermark_position = [0, 0]
+
+    if horizontal_anchor == 'right':
         watermark_position[0] = valid_x_max
-    elif config.horizontal_anchor == 'center':
+    elif horizontal_anchor == 'center':
         watermark_position[0] = int(float(valid_x_max) / 2.0)
-    elif config.horizontal_anchor == 'random':
+    elif horizontal_anchor == 'random':
         watermark_position[0] = randint(0, valid_x_max)
-    if config.vertical_anchor == 'bottom':
+    if vertical_anchor == 'bottom':
         watermark_position[1] = valid_y_max
-    elif config.vertical_anchor == 'center':
+    elif vertical_anchor == 'center':
         watermark_position[1] = int(float(valid_y_max) / 2.0)
-    elif config.vertical_anchor == 'random':
+    elif vertical_anchor == 'random':
         watermark_position[1] = randint(0, valid_y_max)
-    return watermark_position
+    return (watermark_position, [])
 
 
-def apply_watermark_to_image(watermark_image, filename_input, filename_output, config):
-        print("    %s" % (filename_input))
-        image = None
-        try:
-            image = Image.open(filename_input).convert('RGBA')
-        except Exception as e:
-            print("Could not load image: %s. Error was: %s" % (
-                filename_input, str(e)))
-            raise e
-        watermark_position = _get_watermark_position(image.size,
-                                                     watermark_image.size,
-                                                     config)
-        output_image =  Image.new('RGBA', image.size, (0,0,0,0))
-        watermark_alpha = watermark.split()[-1]
-        alpha_scale = ImageChops.constant(watermark_alpha, int (255.0 * config.alpha_scale))
-        if config.alpha_scale < .99:
-            watermark_alpha = ImageChops.multiply(watermark_alpha, alpha_scale)
-        output_image.paste(watermark, watermark_position, mask=watermark_alpha)
-        output_image = Image.alpha_composite(image, output_image)
-        
-        if config.show_images:
-            output_image.show()
-        output_image.save(filename_output)
+def apply_watermark_to_image(watermark_config, watermark_image, base_image):
+    # Applies the watermark to base_image in the locations specified by watermark_config.
+    # with TemporaryDirectory() as temp_dir:
+    # ... do something with temp_dir
+    base_filename = base_image.filename
+    base_image, errors = maybe_resize_image(watermark_config, base_image,
+                                            watermark_image)
+    output_image = Image.new('RGBA', base_image.size, (0, 0, 0, 0))
+    watermark_alpha = watermark_image.split()[-1]
+    alpha_scale = ImageChops.constant(
+        watermark_alpha, int(255.0 * watermark_config.alpha_scale))
+    if watermark_config.alpha_scale < .99:
+        watermark_alpha = ImageChops.multiply(watermark_alpha, alpha_scale)
+    for anchor in watermark_config.watermark_locations:
+        watermark_position, errors = get_watermark_position(
+            anchor, base_image.size, watermark_image.size)
+        output_image.paste(watermark_image,
+                           watermark_position,
+                           mask=watermark_alpha)
+    output_image = Image.alpha_composite(base_image.convert("RGBA"),
+                                         output_image)
+    if watermark_config.show_generated_images:
+        output_image.show()
+    output_filename = ".".join(os.path.basename(base_filename).split(".")[:-1])
+    output_filename = os.path.join(watermark_config.output_folder,
+                                   "%s_watermarked.png" % (output_filename))
+    output_image.save(output_filename)
+    return (output_filename, [])
 
-def apply_watermark_to_images(watermark_image, images_list,
-                              output_directory, config):
-    print("Processing Images:")
-    for image_path in images_list:
-        image_filename = os.path.basename(image_path)
-        output_filename = ".".join(image_filename.split("."))[:-1] + ".png"
-        output_path = os.path.join(output_directory, output_filename)
-        apply_watermark_to_image(watermark_image, image_path, output_path,
-                                 config)
 
-def find_files(file_search_path):
-    file_list = []
-    for filename in glob.glob(file_search_path):
-        if os.path.isfile(filename):
-            file_list.append(filename)
+def apply_watermark(watermark_config):
+    watermark_image, errors = load_image(watermark_config.watermark_file)
+    if len(errors) > 0:
+        return (False, errors)
 
-    if len(file_list) == 0:
-        print("No files matching pattern: %s" % (file_search_path))
-        sys.exit(1)
-    else:
-        print("will process the following images:")
-        for image in file_list:
-            print("", image)
-    
-    return file_list
+    for image in watermark_config.files_to_watermark:
+        print("processing: %s" % image)
+        base_image, errors = load_image(image)
+        if len(errors) > 0:
+            return (False, errors)
 
-def create_folder(output_folder_path):
-    if os.path.exists(output_folder_path):
-        if not os.path.isdir(output_folder_path):
-            print("Output path exists and is not a folder.")
-            sys.exit(1)
-        else:
-            return os.path.abspath(output_folder_path)
-    
-    try:
-        os.mkdir(output_folder_path)
-    except Exception as e:
-        print("Unable to create output path. Error was: %s" % (str(e)))
-        raise e
-
-    return os.path.abspath(output_folder_path)
-
-if __name__ == '__main__':
-    arguments = docopt(__doc__, version='Naval Fate 2.0')
-    
-    # Load config
-    config = config_from_arguments(arguments)
-
-    # Load the watermark image
-    watermark = load_watermark(config.watermark_file)
-
-    # Load the files to watermark
-    image_files = find_files(config.input_file_regex)
-    
-    # Create output folder
-    output_folder = create_folder(config.output_directory)
-
-    # Apply the watermark 
-    apply_watermark_to_images(watermark, image_files, output_folder,
-                              config)
+        output_image, errors = apply_watermark_to_image(
+            watermark_config, watermark_image, base_image)
+        if len(errors) > 0:
+            return (False, errors)

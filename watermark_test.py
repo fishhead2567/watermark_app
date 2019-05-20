@@ -9,7 +9,7 @@ import watermark
 from watermark_config import WatermarkConfig
 from gui.watermark_progress_dialog import ProgressDialog, WatermarkThread
 
-WATERMARK_FILE = os.path.abspath("./test/watermark_image.png")
+WATERMARK_FILE = os.path.abspath("./test/watermark_image/watermark_image.png")
 TEST_FILE = os.path.abspath("./test/base_image.png")
 OUT_DIRECTORY = os.path.abspath("./test/")
 

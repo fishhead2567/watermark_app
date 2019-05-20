@@ -7,6 +7,7 @@ from PIL import Image
 
 import watermark
 from watermark_config import WatermarkConfig
+from gui.watermark_progress_dialog import ProgressDialog, WatermarkThread
 
 WATERMARK_FILE = os.path.abspath("./test/watermark_image.png")
 TEST_FILE = os.path.abspath("./test/base_image.png")
@@ -49,3 +50,19 @@ def test_ApplyWatermark():
     base_image, errors = watermark.load_image(TEST_FILE)
     output_image, errors = watermark.apply_watermark_to_image(config, watermark_image, base_image)
     assert(len(errors) == 0)
+
+def test_ConstructProgressdialog(qtbot):
+    config = _CreateBaseConfig()
+    progress_dialog = ProgressDialog(config)
+    assert(progress_dialog is not None)
+
+def test_WatermarkThread(qtbot):
+    config = _CreateBaseConfig()
+    thread = WatermarkThread(config)
+    thread.run()
+
+def test_RunProgressDialog():
+    config = _CreateBaseConfig()
+    progress_dialog = ProgressDialog(config)
+    progress_dialog.exec_()
+

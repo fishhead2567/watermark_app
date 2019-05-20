@@ -5,6 +5,7 @@ import sys
 
 from PyQt5 import QtWidgets
 
+from gui.watermark_progress_dialog import ProgressDialog
 from gui.watermark_window_ui import Ui_MainWindow
 from watermark_config import WatermarkConfigQt
 
@@ -18,14 +19,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.watermark_config = WatermarkConfigQt()
         self.checkboxes = {}
-        self.files_to_watermark = []
-        self.watermark_to_apply = None
-        self.output_folder = None
 
         # Add Checkboxes for watermark pairings
-        self.checkbox_button_group = QtWidgets.QButtonGroup(self.ui.centralwidget)
+        self.checkbox_button_group = QtWidgets.QButtonGroup(
+            self.ui.centralwidget)
         self.checkbox_button_group.setExclusive(False)
-        self.checkbox_button_group.buttonToggled.connect(self.watermark_config.watermark_location_changed)
+        self.checkbox_button_group.buttonToggled.connect(
+            self.watermark_config.watermark_location_changed)
         # self.ui.CheckBoxContainer.addWidget(self.checkbox_button_group)
         for box_vertical in ["top", "bottom"]:
             for box_horizontal in ["left", "right"]:
@@ -63,7 +63,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             print("files chosen")
             filenames = dlg.selectedFiles()
             self.watermark_config.watermark_config.files_to_watermark = filenames
-            self.ui.toWatermarkList.setText("\n".join(self.files_to_watermark))
+            self.ui.toWatermarkList.clear()
+            for item in self.watermark_config.watermark_config.files_to_watermark:
+                self.ui.toWatermarkList.addItem(item)
 
     def SetWatermarkToApply(self):
         dlg = QtWidgets.QFileDialog()
@@ -74,7 +76,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             print("file chosen")
             filename = dlg.selectedFiles()[0]
             self.watermark_config.watermark_config.watermark_file = filename
-            self.ui.watermarkFileList.setText(self.watermark_to_apply)
+            self.ui.watermarkFile.setText(
+                self.watermark_config.watermark_config.watermark_file)
 
     def SetOutputFolder(self):
         dlg = QtWidgets.QFileDialog()
@@ -85,26 +88,34 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         if dlg.exec_():
             print("dir chosen")
             directory_name = dlg.selectedFiles()
-            self.watermark_config.watermark_config.output_folder = directory_name[0]
-            self.ui.outputFolderList.setText(self.output_folder)
+            self.watermark_config.watermark_config.output_folder = directory_name[
+                0]
+            self.ui.outputFolder.setText(
+                self.watermark_config.watermark_config.output_folder)
 
     def ErrorDialog(self, messages):
-      print("errors", "\n".join(messages))
-      error_box = QtWidgets.QMessageBox()
-      error_box.setIcon(QtWidgets.QMessageBox.Critical)
-      error_box.setText("Errors Detected!")
-      error_box.setInformativeText("\n".join(messages))
-      error_box.setWindowTitle("Doh!")
-      error_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
-      retval = error_box.exec_()
+        print("errors", "\n".join(messages))
+        error_box = QtWidgets.QMessageBox()
+        error_box.setIcon(QtWidgets.QMessageBox.Critical)
+        error_box.setText("Errors Detected!")
+        error_box.setInformativeText("\n".join(messages))
+        error_box.setWindowTitle("Doh!")
+        error_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        retval = error_box.exec_()
 
     def DoWatermarks(self):
         error_messages = self.watermark_config.watermark_config.check_valid()
         if len(error_messages) == 0:
-          print("Valid")
+            print("Valid")
         else:
-          self.ErrorDialog(error_messages)
-          return
+            self.ErrorDialog(error_messages)
+            return
+
+        # Create the watermark dialog and configure it
+        progress_dialog = ProgressDialog(
+            self.watermark_config.watermark_config)
+        progress_dialog.exec_()
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

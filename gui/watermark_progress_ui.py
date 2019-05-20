@@ -16,10 +16,10 @@ class Ui_Dialog(object):
         self.verticalLayout.setObjectName("verticalLayout")
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem)
-        self.label = QtWidgets.QLabel(Dialog)
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.label.setObjectName("label")
-        self.verticalLayout.addWidget(self.label)
+        self.statusLabel = QtWidgets.QLabel(Dialog)
+        self.statusLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.statusLabel.setObjectName("statusLabel")
+        self.verticalLayout.addWidget(self.statusLabel)
         self.itemProgress = QtWidgets.QProgressBar(Dialog)
         self.itemProgress.setProperty("value", 0)
         self.itemProgress.setObjectName("itemProgress")
@@ -52,6 +52,10 @@ class Ui_Dialog(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
         spacerItem3 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem3)
+        self.doneButton = QtWidgets.QPushButton(Dialog)
+        self.doneButton.setEnabled(False)
+        self.doneButton.setObjectName("doneButton")
+        self.verticalLayout.addWidget(self.doneButton)
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -59,8 +63,9 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Applying Watermark"))
+        self.statusLabel.setText(_translate("Dialog", "Applying Watermark"))
         self.completedItems.setText(_translate("Dialog", "0"))
         self.label_3.setText(_translate("Dialog", "/"))
         self.totalItems.setText(_translate("Dialog", "N"))
+        self.doneButton.setText(_translate("Dialog", "Done"))
 

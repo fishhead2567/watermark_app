@@ -14,6 +14,7 @@ class WatermarkConfig:
         self.watermark_locations = []
         self.width_percentage = 0.1
         self.height_percentage = 0.1
+        self.do_image_scaling = True
         self.alpha_scale = 1.0
         self.show_generated_images = False
 
@@ -25,6 +26,7 @@ class WatermarkConfig:
         self.watermark_locations = []
         self.width_percentage = 0.1
         self.height_percentage = 0.1
+        self.do_image_scaling = True
         self.alpha_scale = 1.0
         self.show_generated_images = False
 
@@ -38,12 +40,28 @@ class WatermarkConfig:
             error_messages.append("You must choose a watermark file or set text to apply")
         if not len(self.watermark_locations) > 0:
             error_messages.append("You must choose at least one location to watermark")
-        if not self.width_percentage > 0 and self.width_percentage < 100:
-            error_messages.append("width percentage must be between 1 and 100")
-        if not self.height_percentage > 0 and self.height_percentage < 100:
-            error_messages.append("height percentage must be between 1 and 100")
+        if self.do_image_scaling:
+            if not self.width_percentage > 0 and self.width_percentage < 100:
+                error_messages.append("width percentage must be between 1 and 100")
+            if not self.height_percentage > 0 and self.height_percentage < 100:
+                error_messages.append("height percentage must be between 1 and 100")
         return error_messages
 
+    def __str__(self):
+        return (
+            "WaterMarkConfig:\n"
+            f"-files_to_watermark: {self.files_to_watermark}\n"
+            f"-output_folder: {self.output_folder}\n"
+            f"-watermark_file: {self.watermark_file}\n"
+            f"-watermark_text: {self.watermark_text}\n"
+            f"-watermark_text_color: {self.watermark_text_color}\n"
+            f"-watermark_locations: {self.watermark_locations}\n"
+            f"-width_percentage: {self.width_percentage}\n"
+            f"-height_percentage: {self.height_percentage}\n"
+            f"-do_image_scaling: {self.do_image_scaling}\n"
+            f"-alpha_scale: {self.alpha_scale}\n"
+            f"-show_generated_images: {self.show_generated_images}"
+        )
 
 class WatermarkConfigQt(QObject):
     def __init__(self):
@@ -78,3 +96,7 @@ class WatermarkConfigQt(QObject):
             self.watermark_config.watermark_text = None
         else:
             self.watermark_config.watermark_text = value
+
+    def do_image_scale_changed(self, checked):
+        self.watermark_config.do_image_scaling = checked == 2
+        print(f"Scaling changed {self.watermark_config.do_image_scaling}")

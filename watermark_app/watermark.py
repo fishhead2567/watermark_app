@@ -24,7 +24,11 @@ def load_image(image_path):
 
 def maybe_resize_image(watermark_config, input_image, watermark_image):
     # Resize the input image to match the dimensions of the watermark.
-    # Determine if scaling is needed
+    # Determine if scaling is needed and desired
+
+    if not watermark_config.do_image_scaling:
+        return (input_image, [])
+
     scaling_needed = False
     minimal_ratio = 1.0
     watermark_x_ratio = watermark_image.size[0] / input_image.size[0]

@@ -46,6 +46,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.waterMarkFileButton.clicked.connect(self.SetWatermarkToApply)
         self.ui.outputFolderButton.clicked.connect(self.SetOutputFolder)
         self.ui.watermarkButton.clicked.connect(self.DoWatermarks)
+        self.ui.doScaleCheckbox.stateChanged.connect(self.watermark_config.do_image_scale_changed)
 
     def SetFilesToWatermark(self):
         dlg = QtWidgets.QFileDialog()

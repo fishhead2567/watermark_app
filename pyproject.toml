@@ -10,6 +10,8 @@ python = ">=3.9,<3.14"
 docopt = "^0.6.2"
 pillow = "^11.0.0"
 pyqt5 = "^5.15.11"
+# Poetry workaround to avoid failing deps
+pyqt5-qt5 = "5.15.2"
 pytest = "^8.3.4"
 pytest-qt = "^4.4.0"
 black = "^24.10.0"

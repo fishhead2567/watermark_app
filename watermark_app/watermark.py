@@ -87,7 +87,10 @@ def create_text_layer(watermark_config: WatermarkConfig):
     if watermark_config.watermark_text is None:
         return None, ["No text specified"]
     font_size = 36
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    if os.name == "nt":
+        font_path = "c:\WINDOWS\Fonts\ARIALBD.TTF"
+    else:
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     font = ImageFont.truetype(font_path, font_size)
 
     text_width, text_height = font.getbbox(watermark_config.watermark_text)[2:]

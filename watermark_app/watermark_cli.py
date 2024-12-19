@@ -9,15 +9,15 @@ Usage:
   watermark.py <input_images> <output_folder> [options]
 
 Options:
-  --show                       Whether to show each generated image
-  --vertical_anchor=<string>   [top, bottom, center, random] Where to anchor the watermark vertically
-  --horizontal_anchor=<string> [left, right, center, random] where to anchor the watermark horizontally
-  --alpha_scale=<int>          scale the transparency of the watermark [default: 1.0]
-  --scale_image=<bool>         If True, scale the image so that the watermark sizes according to the ratios provided [default: True]
-  --min_horizontal_ratio=<int> Minimum ratio between horizontal sizes of watermark and bas images [default: 0.1]
-  --min_vertical_ratio=<int>   Minimum ratio between vertical sizes of watermark and bas images [default: 0.1]
-  --watermark_image=<string>   Image watermark to apply. One of image or text must be provided.
-  --watermark_text=<string>    Text watermark to apply. One of image or text must be provided.
+  --show                         Whether to show each generated image
+  --vertical_anchor=<string>     [top, bottom, center, random] Where to anchor the watermark vertically
+  --horizontal_anchor=<string>   [left, right, center, random] where to anchor the watermark horizontally
+  --alpha_scale=<int>            scale the transparency of the watermark [default: 1.0]
+  --scale_image=<bool>           If True, scale the image so that the watermark sizes according to the ratios provided [default: True]
+  --min_horizontal_ratio=<float> Minimum ratio between horizontal sizes of watermark and bas images [default: 0.1]
+  --min_vertical_ratio=<float>   Minimum ratio between vertical sizes of watermark and bas images [default: 0.1]
+  --watermark_image=<string>     Image watermark to apply. One of image or text must be provided.
+  --watermark_text=<string>      Text watermark to apply. One of image or text must be provided.
 """
 
 import glob
@@ -42,7 +42,7 @@ def config_from_arguments(arguments):
         config.watermark_config.watermark_file = arguments["--watermark_image"]
     if arguments["--watermark_text"] is not None and len(arguments["--watermark_text"]) > 0:
         config.watermark_config.watermark_text = arguments["--watermark_text"]
-
+    print(arguments)
     if arguments["--show"] is not None:
         config.watermark_config.show_generated_images = arguments["--show"]
     watermark_placement = ["top", "left"]
@@ -50,7 +50,9 @@ def config_from_arguments(arguments):
         watermark_placement[0] = arguments["--vertical_anchor"]
     if arguments["--horizontal_anchor"] in VALID_HORIZONTAL:
         watermark_placement[1] = arguments["--horizontal_anchor"]
-    config.watermark_config.do_image_scaling = arguments["--scale_image"] == "True"
+    config.watermark_config.do_image_scaling = bool(arguments["--scale_image"])
+    config.watermark_config.height_percentage = float(arguments["--min_vertical_ratio"])
+    config.watermark_config.width_percentage = float(arguments["--min_horizontal_ratio"])
     config.watermark_config.watermark_locations.append("-".join(watermark_placement))
     try:
         config.watermark_config.alpha_scale = float(arguments["--alpha_scale"])

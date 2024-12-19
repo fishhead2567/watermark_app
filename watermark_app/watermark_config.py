@@ -37,13 +37,11 @@ class WatermarkConfig:
         if self.watermark_file is None and self.watermark_text is None:
             error_messages.append("You must choose a watermark file or set text to apply")
         if not len(self.watermark_locations) > 0:
-            error_messages.append(
-                "You must choose at least one location to watermark")
+            error_messages.append("You must choose at least one location to watermark")
         if not self.width_percentage > 0 and self.width_percentage < 100:
             error_messages.append("width percentage must be between 1 and 100")
         if not self.height_percentage > 0 and self.height_percentage < 100:
-            error_messages.append(
-                "height percentage must be between 1 and 100")
+            error_messages.append("height percentage must be between 1 and 100")
         return error_messages
 
 
@@ -64,7 +62,8 @@ class WatermarkConfigQt(QObject):
             self.watermark_config.height_percentage = float(value) / 100.0
             print(f"height changed {self.watermark_config.height_percentage}")
         except ValueError:
-             pass
+            pass
+
     def watermark_location_changed(self, button, checked):
         value = button.text()
         if not checked and value in self.watermark_config.watermark_locations:

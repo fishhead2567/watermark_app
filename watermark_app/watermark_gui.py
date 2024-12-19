@@ -21,19 +21,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.checkboxes = {}
 
         # Add Checkboxes for watermark pairings
-        self.checkbox_button_group = QtWidgets.QButtonGroup(
-            self.ui.centralwidget)
+        self.checkbox_button_group = QtWidgets.QButtonGroup(self.ui.centralwidget)
         self.checkbox_button_group.setExclusive(False)
-        self.checkbox_button_group.buttonToggled.connect(
-            self.watermark_config.watermark_location_changed)
+        self.checkbox_button_group.buttonToggled.connect(self.watermark_config.watermark_location_changed)
         # self.ui.CheckBoxContainer.addWidget(self.checkbox_button_group)
         for box_vertical in ["top", "bottom"]:
             for box_horizontal in ["left", "right"]:
                 opts = [box_vertical, box_horizontal]
                 key = "-".join(opts)
-                self.checkboxes[key] = [
-                    QtWidgets.QCheckBox(self.ui.centralwidget), opts
-                ]
+                self.checkboxes[key] = [QtWidgets.QCheckBox(self.ui.centralwidget), opts]
                 self.checkboxes[key][0].setObjectName(key)
                 self.ui.CheckBoxContainer.addWidget(self.checkboxes[key][0])
                 self.checkbox_button_group.addButton(self.checkboxes[key][0])
@@ -41,13 +37,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 # self.checkboxes[key][0].toggled.connect(self.watermark_config.watermark_location_changed)
 
         # Hookup Config Params
-        self.ui.widthScale.textEdited.connect(
-            self.watermark_config.width_changed)
-        self.ui.heightScale.textEdited.connect(
-            self.watermark_config.height_changed)
+        self.ui.widthScale.textEdited.connect(self.watermark_config.width_changed)
+        self.ui.heightScale.textEdited.connect(self.watermark_config.height_changed)
         self.ui.watermarkText.textEdited.connect(self.watermark_config.text_changed)
 
-        #Hookup dialogs
+        # Hookup dialogs
         self.ui.toWatermarkButton.clicked.connect(self.SetFilesToWatermark)
         self.ui.waterMarkFileButton.clicked.connect(self.SetWatermarkToApply)
         self.ui.outputFolderButton.clicked.connect(self.SetOutputFolder)
@@ -77,8 +71,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             print("file chosen")
             filename = dlg.selectedFiles()[0]
             self.watermark_config.watermark_config.watermark_file = filename
-            self.ui.watermarkFile.setText(
-                self.watermark_config.watermark_config.watermark_file)
+            self.ui.watermarkFile.setText(self.watermark_config.watermark_config.watermark_file)
 
     def SetOutputFolder(self):
         dlg = QtWidgets.QFileDialog()
@@ -89,10 +82,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         if dlg.exec_():
             print("dir chosen")
             directory_name = dlg.selectedFiles()
-            self.watermark_config.watermark_config.output_folder = directory_name[
-                0]
-            self.ui.outputFolder.setText(
-                self.watermark_config.watermark_config.output_folder)
+            self.watermark_config.watermark_config.output_folder = directory_name[0]
+            self.ui.outputFolder.setText(self.watermark_config.watermark_config.output_folder)
 
     def ErrorDialog(self, messages):
         print("errors", "\n".join(messages))
@@ -113,8 +104,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             return
 
         # Create the watermark dialog and configure it
-        progress_dialog = ProgressDialog(
-            self.watermark_config.watermark_config)
+        progress_dialog = ProgressDialog(self.watermark_config.watermark_config)
         progress_dialog.exec_()
 
 

@@ -13,6 +13,7 @@ WATERMARK_FILE = os.path.abspath("./test/watermark_image/watermark_image.png")
 TEST_FILE = os.path.abspath("./test/base_image.png")
 OUT_DIRECTORY = os.path.abspath("./test/")
 
+
 def _CreateBaseConfig():
     config = WatermarkConfig()
     config.watermark_file = WATERMARK_FILE
@@ -25,7 +26,7 @@ def _CreateBaseConfig():
 def test_load_image():
     config = _CreateBaseConfig()
     watermark_image, errors = watermark.load_image(WATERMARK_FILE)
-    assert (len(errors) == 0)
+    assert len(errors) == 0
 
 
 def test_ImageResize():
@@ -40,29 +41,31 @@ def test_GetWatermarkPosition():
     watermark_image, errors = watermark.load_image(WATERMARK_FILE)
     base_image, errors = watermark.load_image(TEST_FILE)
     for location in config.watermark_locations:
-        positon, errors = watermark.get_watermark_position(
-            location, base_image.size, watermark_image.size)
-        assert(len(errors) == 0)
+        positon, errors = watermark.get_watermark_position(location, base_image.size, watermark_image.size)
+        assert len(errors) == 0
+
 
 def test_ApplyWatermark():
     config = _CreateBaseConfig()
     watermark_image, errors = watermark.load_image(WATERMARK_FILE)
     base_image, errors = watermark.load_image(TEST_FILE)
     output_image, errors = watermark.apply_watermark_to_image(config, watermark_image, base_image)
-    assert(len(errors) == 0)
+    assert len(errors) == 0
+
 
 def test_ConstructProgressdialog(qtbot):
     config = _CreateBaseConfig()
     progress_dialog = ProgressDialog(config)
-    assert(progress_dialog is not None)
+    assert progress_dialog is not None
+
 
 def test_WatermarkThread(qtbot):
     config = _CreateBaseConfig()
     thread = WatermarkThread(config)
     thread.run()
 
+
 def test_RunProgressDialog():
     config = _CreateBaseConfig()
     progress_dialog = ProgressDialog(config)
     progress_dialog.exec_()
-

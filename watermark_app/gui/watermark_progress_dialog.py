@@ -12,8 +12,7 @@ class ProgressDialog(QtWidgets.QDialog, Ui_Dialog):
         self.watermark_config = watermark_config
         self.watermark_thread = None
         self.files_processed = 0
-        self.totalItems.setText("%d" %
-                                len(self.watermark_config.files_to_watermark))
+        self.totalItems.setText("%d" % len(self.watermark_config.files_to_watermark))
         self.doneButton.clicked.connect(self.accept)
 
     def exec_(self):
@@ -29,11 +28,8 @@ class ProgressDialog(QtWidgets.QDialog, Ui_Dialog):
         self.statusLabel.setText(status)
         self.files_processed = progress
         self.completedItems.setText("%d" % progress)
-        self.itemProgress.setProperty(
-            "value",
-            progress / len(self.watermark_config.files_to_watermark) * 100)
-        if self.files_processed >= len(
-                self.watermark_config.files_to_watermark):
+        self.itemProgress.setProperty("value", progress / len(self.watermark_config.files_to_watermark) * 100)
+        if self.files_processed >= len(self.watermark_config.files_to_watermark):
             self.doneButton.setEnabled(True)
 
 
@@ -55,10 +51,7 @@ class WatermarkThread(QtCore.QThread):
 
     def run(self):
         self.set_run_status("Loading watermark", 0)
-        watermark_image, errors = watermark.load_watermark_image_and_text(
-            self.watermark_config
-        )
-        
+        watermark_image, errors = watermark.load_watermark_image_and_text(self.watermark_config)
 
         if len(errors) > 0:
             # return (False, errors)
@@ -73,7 +66,8 @@ class WatermarkThread(QtCore.QThread):
                 pass
 
             output_image, errors = watermark.apply_watermark_to_image(
-                self.watermark_config, watermark_image, base_image)
+                self.watermark_config, watermark_image, base_image
+            )
             if len(errors) > 0:
                 # return (False, errors)
                 pass

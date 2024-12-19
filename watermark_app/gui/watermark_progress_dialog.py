@@ -55,8 +55,11 @@ class WatermarkThread(QtCore.QThread):
 
     def run(self):
         self.set_run_status("Loading watermark", 0)
-        watermark_image, errors = watermark.load_image(
-            self.watermark_config.watermark_file)
+        watermark_image, errors = watermark.load_watermark_image_and_text(
+            self.watermark_config
+        )
+        
+
         if len(errors) > 0:
             # return (False, errors)
             pass

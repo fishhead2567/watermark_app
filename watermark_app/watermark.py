@@ -2,6 +2,7 @@ import os
 from tempfile import TemporaryDirectory
 
 from PIL import Image, ImageChops
+from PIL import ImageDraw, ImageFont
 
 from watermark_config import WatermarkConfig
 
@@ -42,7 +43,7 @@ def maybe_resize_image(watermark_config, input_image, watermark_image):
         if y_scaling < minimal_ratio:
             minimal_ratio = y_scaling
     if scaling_needed:
-        # print("scaling image", minimal_ratio)
+        print("scaling image", minimal_ratio)
         new_image_size = (int(input_image.size[0] * minimal_ratio),
                           int(input_image.size[1] * minimal_ratio))
         output_image = input_image.resize(new_image_size)
@@ -80,6 +81,21 @@ def get_watermark_position(anchor, image_size, watermark_size):
     return (watermark_position, [])
 
 
+def create_text_layer(watermark_config: WatermarkConfig):
+    if watermark_config.watermark_text is None:
+        return None, ["No text specified"]
+    font_size = 36
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    font = ImageFont.truetype(font_path, font_size)
+
+    text_width, text_height = font.getbbox(watermark_config.watermark_text)[2:]
+    text_layer = Image.new('RGBA', (text_width, text_height), (0, 0, 0, 0))
+    
+    draw = ImageDraw.Draw(text_layer)
+    text_color = watermark_config.watermark_text_color if watermark_config.watermark_text_color else (255, 255, 255, 128)
+    draw.text((0, 0), watermark_config.watermark_text, font=font, fill=text_color)
+    return text_layer, []
+
 def apply_watermark_to_image(watermark_config, watermark_image, base_image):
     # Applies the watermark to base_image in the locations specified by watermark_config.
     # with TemporaryDirectory() as temp_dir:
@@ -110,8 +126,34 @@ def apply_watermark_to_image(watermark_config, watermark_image, base_image):
     return (output_filename, [])
 
 
-def apply_watermark(watermark_config):
-    watermark_image, errors = load_image(watermark_config.watermark_file)
+def composite_sidebyside(left: Image, right: Image):
+    new_width = left.width + right.width
+    new_height = max(left.height, right.height)
+    new_image = Image.new('RGBA', (new_width, new_height), (0, 0, 0, 0))
+    new_image.paste(left, (0, 0))
+    new_image.paste(right, (left.width, 0))
+    return new_image
+
+def load_watermark_image_and_text(watermark_config: WatermarkConfig):
+    watermark_image = None
+    errors = []
+    if watermark_config.watermark_file is not None:
+        watermark_image, errors = load_image(watermark_config.watermark_file)
+    
+    if watermark_config.watermark_text is not None:
+        text_image, text_errors = create_text_layer(watermark_config)
+        errors += text_errors
+        if watermark_image is None:
+            watermark_image = text_image
+        else:
+            watermark_image = composite_sidebyside(watermark_image, text_image)
+    
+    return watermark_image, errors
+    
+
+def apply_watermark(watermark_config: WatermarkConfig):
+    watermark_image, errors = load_watermark_image_and_text(watermark_config)
+    
     if len(errors) > 0:
         return (False, errors)
 
@@ -125,3 +167,4 @@ def apply_watermark(watermark_config):
             watermark_config, watermark_image, base_image)
         if len(errors) > 0:
             return (False, errors)
+    return True, []

@@ -45,6 +45,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.watermark_config.width_changed)
         self.ui.heightScale.textEdited.connect(
             self.watermark_config.height_changed)
+        self.ui.watermarkText.textEdited.connect(self.watermark_config.text_changed)
 
         #Hookup dialogs
         self.ui.toWatermarkButton.clicked.connect(self.SetFilesToWatermark)

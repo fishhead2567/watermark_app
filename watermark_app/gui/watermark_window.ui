@@ -130,7 +130,7 @@
         <item>
          <widget class="QLineEdit" name="widthScale">
           <property name="text">
-           <string>10</string>
+           <string>15</string>
           </property>
          </widget>
         </item>
@@ -144,7 +144,7 @@
         <item>
          <widget class="QLineEdit" name="heightScale">
           <property name="text">
-           <string>10</string>
+           <string>15</string>
           </property>
          </widget>
         </item>

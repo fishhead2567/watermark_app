@@ -49,7 +49,7 @@ def test_ApplyWatermark():
     config = _CreateBaseConfig()
     watermark_image, errors = watermark.load_image(WATERMARK_FILE)
     base_image, errors = watermark.load_image(TEST_FILE)
-    output_image, errors = watermark.apply_watermark_to_image(config, watermark_image, base_image)
+    output_image, errors = watermark.apply_watermark_to_image(config, base_image, watermark_image)
     assert len(errors) == 0
 
 

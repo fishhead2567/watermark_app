@@ -7,7 +7,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.14"
-docopt = "^0.6.2"
 pillow = "^11.0.0"
 pyqt5 = "^5.15.11"
 # Poetry workaround to avoid failing deps

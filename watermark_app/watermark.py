@@ -1,4 +1,5 @@
 import os
+from random import randint
 from tempfile import TemporaryDirectory
 
 from PIL import Image, ImageChops
@@ -13,7 +14,7 @@ VALID_VERTICAL = ["bottom", "top", "center", "random"]
 VALID_HORIZONTAL = ["right", "left", "center", "random"]
 
 
-def load_image(image_path):
+def load_image(image_path: str):
     # Loads the watermark image.
     image = None
     error_messages = []
@@ -25,27 +26,44 @@ def load_image(image_path):
     return (image, error_messages)
 
 
-def maybe_resize_image(watermark_config, input_image, watermark_image):
-    # Resize the input image to match the dimensions of the watermark.
-    # Determine if scaling is needed and desired
+def maybe_resize_image(watermark_config: WatermarkConfig, input_image: Image, watermark_image: Image = None):
+    """
+    Resize the input image to ensure the watermark meets a desired size ratio if needed.
 
-    if not watermark_config.do_image_scaling:
+    The watermark should be at-least the specified ratio of the input image. If resize is needed, do so.
+    Args:
+        watermark_config (WatermarkConfig): Configuration object containing watermark settings, including whether
+            scaling is enabled and the width and height percentages.
+        input_image (Image): The input image to potentially resize.
+        watermark_image (Image): The watermark image used to determine if resizing is necessary.
+
+    Returns:
+        tuple: A tuple containing the potentially resized input image and an empty list.
+    """
+
+    if not watermark_config.do_image_scaling or watermark_image is None:
         return (input_image, [])
 
     scaling_needed = False
     minimal_ratio = 1.0
-    watermark_x_ratio = watermark_image.size[0] / input_image.size[0]
-    watermark_y_ratio = watermark_image.size[1] / input_image.size[1]
-    if watermark_x_ratio < watermark_config.width_percentage:
+    watermark_x_ratio = watermark_image.size[1] / input_image.size[1]
+    watermark_y_ratio = watermark_image.size[0] / input_image.size[0]
+    if (
+        watermark_config.minimal_watermark_width_percentage is not None
+        and watermark_x_ratio < watermark_config.minimal_watermark_width_percentage
+    ):
         scaling_needed = True
-        x_target = watermark_image.size[0] / watermark_config.width_percentage
-        x_scaling = x_target / input_image.size[0]
+        x_target = watermark_image.size[1] / watermark_config.minimal_watermark_width_percentage
+        x_scaling = x_target / input_image.size[1]
         if x_scaling < minimal_ratio:
             minimal_ratio = x_scaling
-    if watermark_y_ratio < watermark_config.height_percentage:
+    if (
+        watermark_config.minimal_watermark_height_percentage is not None
+        and watermark_y_ratio < watermark_config.minimal_watermark_height_percentage
+    ):
         scaling_needed = True
-        y_target = watermark_image.size[1] / watermark_config.height_percentage
-        y_scaling = y_target / input_image.size[1]
+        y_target = watermark_image.size[0] / watermark_config.minimal_watermark_height_percentage
+        y_scaling = y_target / input_image.size[0]
         if y_scaling < minimal_ratio:
             minimal_ratio = y_scaling
     if scaling_needed:
@@ -56,7 +74,7 @@ def maybe_resize_image(watermark_config, input_image, watermark_image):
     return (input_image, [])
 
 
-def get_watermark_position(anchor, image_size, watermark_size):
+def get_watermark_position(anchor: str, image_size: tuple, watermark_size: tuple):
     vertical_anchor, horizontal_anchor = anchor.split("-")
 
     error_messages = []
@@ -86,38 +104,92 @@ def get_watermark_position(anchor, image_size, watermark_size):
     return (watermark_position, [])
 
 
-def create_text_layer(watermark_config: WatermarkConfig):
-    if watermark_config.watermark_text is None:
+def create_text_layer(
+    watermark_text: str,
+    image_size: tuple,
+    text_color: tuple = (255, 255, 255, 128),
+    width_ratio: float = None,
+    height_ratio: float = None,
+):
+    if watermark_text is None:
         return None, ["No text specified"]
-    font_size = 144
+
     if os.name == "nt":
         font_path = "c:\WINDOWS\Fonts\ARIALBD.TTF"
     else:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    font = ImageFont.truetype(font_path, font_size)
 
-    text_width, text_height = font.getbbox(watermark_config.watermark_text)[2:]
+    if width_ratio is None and height_ratio is None:
+        font_size = 36
+    else:
+        target_height = image_size[0]
+        target_width = image_size[1]
+        if width_ratio is not None:
+            target_width = int(float(image_size[0]) * width_ratio)
+
+        if height_ratio is not None:
+            target_height = int(float(image_size[1]) * height_ratio)
+        font_size = min(target_width // len(watermark_text) * 2, target_height)
+
+    font = ImageFont.truetype(font_path, font_size)
+    text_width, text_height = font.getbbox(watermark_text)[2:]
     text_layer = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
 
     draw = ImageDraw.Draw(text_layer)
-    text_color = (
-        watermark_config.watermark_text_color if watermark_config.watermark_text_color else (255, 255, 255, 128)
-    )
-    draw.text((0, 0), watermark_config.watermark_text, font=font, fill=text_color)
+    draw.text((0, 0), watermark_text, font=font, fill=text_color)
     return text_layer, []
 
 
-def apply_watermark_to_image(watermark_config, watermark_image, base_image):
+def composite_sidebyside(left: Image, right: Image):
+    new_width = left.width + right.width
+    new_height = max(left.height, right.height)
+    new_image = Image.new("RGBA", (new_width, new_height), (0, 0, 0, 0))
+    new_image.paste(left, (0, 0))
+    new_image.paste(right, (left.width, 0))
+    return new_image
+
+
+def apply_watermark_to_image(
+    watermark_config: WatermarkConfig,
+    base_image: Image,
+    watermark_image: Image = None,
+    text_image: Image = None,
+    text: str = None,
+):
     # Applies the watermark to base_image in the locations specified by watermark_config.
     # with TemporaryDirectory() as temp_dir:
     # ... do something with temp_dir
     base_filename = base_image.filename
     base_exif = base_image.getexif()
+
+    # Resize the image if necessary based on the watermark_image file.
     base_image, errors = maybe_resize_image(watermark_config, base_image, watermark_image)
     output_image = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
+
+    # If we don't have a text layer, we must compute it now.
+    if text_image is None and text is not None:
+        text_image, errors = create_text_layer(
+            text,
+            base_image.size,
+            text_color=watermark_config.watermark_text_color,
+            width_ratio=watermark_config.minimal_watermark_width_percentage,
+            height_ratio=watermark_config.minimal_watermark_height_percentage,
+        )
+        if watermark_image:
+            watermark_image = composite_sidebyside(watermark_image, text_image)
+        else:
+            watermark_image = text_image
+
+    if len(errors) > 0:
+        return None, errors
+
+    if watermark_image is None:
+        return None, ["Watermark was None. Either no image or no text specified"]
+
+    alpha_scale_value = int(255 * watermark_config.alpha_scale)
     watermark_alpha = watermark_image.split()[-1]
-    alpha_scale = ImageChops.constant(watermark_alpha, int(255.0 * watermark_config.alpha_scale))
-    if watermark_config.alpha_scale < 0.99:
+    alpha_scale = ImageChops.constant(watermark_alpha, alpha_scale_value)
+    if alpha_scale_value < 255:
         watermark_alpha = ImageChops.multiply(watermark_alpha, alpha_scale)
     for anchor in watermark_config.watermark_locations:
         watermark_position, errors = get_watermark_position(anchor, base_image.size, watermark_image.size)
@@ -132,34 +204,39 @@ def apply_watermark_to_image(watermark_config, watermark_image, base_image):
     return (output_filename, [])
 
 
-def composite_sidebyside(left: Image, right: Image):
-    new_width = left.width + right.width
-    new_height = max(left.height, right.height)
-    new_image = Image.new("RGBA", (new_width, new_height), (0, 0, 0, 0))
-    new_image.paste(left, (0, 0))
-    new_image.paste(right, (left.width, 0))
-    return new_image
-
-
-def load_watermark_image_and_text(watermark_config: WatermarkConfig):
+def preload_watermark_and_text_images(watermark_config):
     watermark_image = None
+    text_image = None
     errors = []
+    text = watermark_config.watermark_text
+
     if watermark_config.watermark_file is not None:
         watermark_image, errors = load_image(watermark_config.watermark_file)
 
-    if watermark_config.watermark_text is not None:
-        text_image, text_errors = create_text_layer(watermark_config)
-        errors += text_errors
-        if watermark_image is None:
-            watermark_image = text_image
-        else:
-            watermark_image = composite_sidebyside(watermark_image, text_image)
+    if len(errors) > 0:
+        return None, None, None, errors
 
-    return watermark_image, errors
+    if watermark_image is not None and watermark_config.watermark_text_to_image_ratio is not None:
+        # We can take the easy path and load both images at the same time. No further text computation will be needed.
+        text_image, errors = create_text_layer(
+            watermark_config,
+            image_size=watermark_image.size,
+            text_color=watermark_config.watermark_text_color,
+            minimal_width_ratio=watermark_config.watermark_text_to_image_ratio,
+            minimal_height_ratio=watermark_config.watermark_text_to_image_ratio,
+        )
+        if len(errors) > 0:
+            return (None, None, None, errors)
+
+        # Composite the watermark and text.
+        watermark_image = composite_sidebyside(watermark_image, text_image)
+        text_image = None
+        text = None
+    return watermark_image, text_image, text, errors
 
 
 def apply_watermark(watermark_config: WatermarkConfig):
-    watermark_image, errors = load_watermark_image_and_text(watermark_config)
+    watermark_image, text_image, text, errors = preload_watermark_and_text_images(watermark_config)
 
     if len(errors) > 0:
         return (False, errors)
@@ -170,7 +247,13 @@ def apply_watermark(watermark_config: WatermarkConfig):
         if len(errors) > 0:
             return (False, errors)
 
-        output_image, errors = apply_watermark_to_image(watermark_config, watermark_image, base_image)
+        output_image, errors = apply_watermark_to_image(
+            watermark_config,
+            base_image,
+            watermark_image,
+            text_image,
+            text=watermark_config.watermark_text if text_image is None else None,
+        )
         if len(errors) > 0:
             return (False, errors)
     return True, []

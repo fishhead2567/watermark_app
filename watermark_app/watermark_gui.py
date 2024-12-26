@@ -37,9 +37,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 # self.checkboxes[key][0].toggled.connect(self.watermark_config.watermark_location_changed)
 
         # Hookup Config Params
-        self.ui.widthScale.textEdited.connect(self.watermark_config.width_changed)
-        self.ui.heightScale.textEdited.connect(self.watermark_config.height_changed)
-        self.ui.watermarkText.textEdited.connect(self.watermark_config.text_changed)
+        self.ui.widthScale.textChanged.connect(self.watermark_config.width_changed)
+        self.ui.heightScale.textChanged.connect(self.watermark_config.height_changed)
+        self.ui.watermarkText.textChanged.connect(self.watermark_config.text_changed)
 
         # Hookup dialogs
         self.ui.toWatermarkButton.clicked.connect(self.SetFilesToWatermark)

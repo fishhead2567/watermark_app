@@ -71,6 +71,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.doScaleCheckbox = QtWidgets.QCheckBox(self.centralwidget)
         self.doScaleCheckbox.setObjectName("doScaleCheckbox")
+        self.doScaleCheckbox.setChecked(True)
         self.horizontalLayout_2.addWidget(self.doScaleCheckbox)
         self.label_5 = QtWidgets.QLabel(self.centralwidget)
         self.label_5.setObjectName("label_5")

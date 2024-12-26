@@ -3,6 +3,9 @@ from tempfile import TemporaryDirectory
 
 from PIL import Image, ImageChops
 from PIL import ImageDraw, ImageFont
+from pillow_heif import register_heif_opener
+
+register_heif_opener()
 
 from watermark_config import WatermarkConfig
 
@@ -86,7 +89,7 @@ def get_watermark_position(anchor, image_size, watermark_size):
 def create_text_layer(watermark_config: WatermarkConfig):
     if watermark_config.watermark_text is None:
         return None, ["No text specified"]
-    font_size = 36
+    font_size = 144
     if os.name == "nt":
         font_path = "c:\WINDOWS\Fonts\ARIALBD.TTF"
     else:
@@ -109,6 +112,7 @@ def apply_watermark_to_image(watermark_config, watermark_image, base_image):
     # with TemporaryDirectory() as temp_dir:
     # ... do something with temp_dir
     base_filename = base_image.filename
+    base_exif = base_image.getexif()
     base_image, errors = maybe_resize_image(watermark_config, base_image, watermark_image)
     output_image = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
     watermark_alpha = watermark_image.split()[-1]
@@ -123,7 +127,8 @@ def apply_watermark_to_image(watermark_config, watermark_image, base_image):
         output_image.show()
     output_filename = ".".join(os.path.basename(base_filename).split(".")[:-1])
     output_filename = os.path.join(watermark_config.output_folder, "%s_watermarked.png" % (output_filename))
-    output_image.save(output_filename)
+    output_filename = os.path.splitext(output_filename)[0] + ".png"
+    output_image.save(output_filename, format="png", optimize=True, exif=base_exif)
     return (output_filename, [])
 
 

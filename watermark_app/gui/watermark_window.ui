@@ -130,7 +130,7 @@
         <item>
          <widget class="QLineEdit" name="widthScale">
           <property name="text">
-           <string>15</string>
+           <string>0</string>
           </property>
          </widget>
         </item>

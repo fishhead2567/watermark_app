@@ -28,7 +28,7 @@ class WatermarkConfig:
         self.watermark_text = None
         self.watermark_text_color = (220, 220, 34, 255)
         self.watermark_locations = []
-        self.minimal_watermark_width_percentage = 0.15
+        self.minimal_watermark_width_percentage = None
         self.minimal_watermark_height_percentage = 0.15
         self.watermark_text_to_image_ratio = None
         self.do_image_scaling = True
@@ -93,18 +93,26 @@ class WatermarkConfigQt(QObject):
     def width_changed(self, value):
         try:
             self.watermark_config.minimal_watermark_width_percentage = float(value) / 100.0
-            print(f"width changed {self.watermark_config.minimal_watermark_width_percentage}")
+            if self.watermark_config.minimal_watermark_width_percentage < 0.01:
+                self.watermark_config.minimal_watermark_width_percentage = None
         except ValueError:
             self.watermark_config.minimal_watermark_width_percentage = None
-            print("width cleared")
+        if self.watermark_config.minimal_watermark_width_percentage is None:
+            print("Watermark width cleared")
+        else:
+            print(f"Watermark width changed {self.watermark_config.minimal_watermark_width_percentage}")
 
     def height_changed(self, value):
         try:
             self.watermark_config.minimal_watermark_height_percentage = float(value) / 100.0
-            print(f"height changed {self.watermark_config.minimal_watermark_height_percentage}")
+            if self.watermark_config.minimal_watermark_height_percentage < 0.01:
+                self.watermark_config.minimal_watermark_height_percentage = None
         except ValueError:
             self.watermark_config.minimal_watermark_height_percentage = None
-            print("height cleared")
+        if self.watermark_config.minimal_watermark_height_percentage is None:
+            print("Watermark height value cleared")
+        else:
+            print(f"Watermark height changed {self.watermark_config.minimal_watermark_height_percentage}")
 
     def watermark_location_changed(self, button, checked):
         value = button.text()
@@ -116,7 +124,7 @@ class WatermarkConfigQt(QObject):
 
     def text_changed(self, value):
         print(f"text changed {value}")
-        if len(value) == 0:
+        if len(value) < 2:
             self.watermark_config.watermark_text = None
         else:
             self.watermark_config.watermark_text = value

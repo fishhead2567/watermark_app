@@ -138,7 +138,7 @@ class Ui_MainWindow(object):
         self.label_2.setText(_translate("MainWindow", "Target atermark ratio"))
         self.doScaleCheckbox.setText(_translate("MainWindow", "Enforce"))
         self.label_5.setText(_translate("MainWindow", "%W:"))
-        self.widthScale.setText(_translate("MainWindow", "15"))
+        self.widthScale.setText(_translate("MainWindow", "0"))
         self.label_4.setText(_translate("MainWindow", "% H:"))
         self.heightScale.setText(_translate("MainWindow", "15"))
         self.watermarkButton.setText(_translate("MainWindow", "Watermark"))

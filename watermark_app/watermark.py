@@ -12,6 +12,7 @@ from watermark_config import WatermarkConfig
 
 VALID_VERTICAL = ["bottom", "top", "center", "random"]
 VALID_HORIZONTAL = ["right", "left", "center", "random"]
+PADDING_PERCENTAGE = 1.0  # Padding from edges for watermark
 
 
 def load_image(image_path: str):
@@ -78,8 +79,12 @@ def get_watermark_position(anchor: str, image_size: tuple, watermark_size: tuple
     vertical_anchor, horizontal_anchor = anchor.split("-")
 
     error_messages = []
-    valid_x_max = image_size[0] - watermark_size[0]
-    valid_y_max = image_size[1] - watermark_size[1]
+    # I think x and y are swapped here, but they are swapped correctly through all uses so
+    # I am leaving it alone.
+    padding_pixels_x = int(image_size[0] * (PADDING_PERCENTAGE / 100.0))
+    padding_pixels_y = int(image_size[1] * (PADDING_PERCENTAGE / 100.0))
+    valid_x_max = image_size[0] - watermark_size[0] - padding_pixels_x
+    valid_y_max = image_size[1] - watermark_size[1] - padding_pixels_y
     if valid_x_max < 0 or valid_y_max < 0:
         error_messages += [
             "Watermark was bigger than image!",
@@ -87,20 +92,20 @@ def get_watermark_position(anchor: str, image_size: tuple, watermark_size: tuple
             "WM W: %d, H: %d" % (watermark_size[0], watermark_size[1]),
         ]
         return (None, error_messages)
-    watermark_position = [0, 0]
+    watermark_position = [padding_pixels_x, padding_pixels_y]
 
     if horizontal_anchor == "right":
         watermark_position[0] = valid_x_max
     elif horizontal_anchor == "center":
-        watermark_position[0] = int(float(valid_x_max) / 2.0)
+        watermark_position[0] = int(float(valid_x_max) / 2.0) + padding_pixels_x
     elif horizontal_anchor == "random":
-        watermark_position[0] = randint(0, valid_x_max)
+        watermark_position[0] = randint(padding_pixels_x, valid_x_max)
     if vertical_anchor == "bottom":
         watermark_position[1] = valid_y_max
     elif vertical_anchor == "center":
-        watermark_position[1] = int(float(valid_y_max) / 2.0)
+        watermark_position[1] = int(float(valid_y_max) / 2.0) + padding_pixels_y
     elif vertical_anchor == "random":
-        watermark_position[1] = randint(0, valid_y_max)
+        watermark_position[1] = randint(padding_pixels_y, valid_y_max)
     return (watermark_position, [])
 
 
@@ -122,17 +127,18 @@ def create_text_layer(
     if width_ratio is None and height_ratio is None:
         font_size = 36
     else:
-        target_height = image_size[0]
-        target_width = image_size[1]
+        target_height = image_size[1]
+        target_width = image_size[0]
         if width_ratio is not None:
-            target_width = int(float(image_size[0]) * width_ratio)
+            target_width = int(float(image_size[1]) * width_ratio)
 
         if height_ratio is not None:
-            target_height = int(float(image_size[1]) * height_ratio)
+            target_height = int(float(image_size[0]) * height_ratio)
         font_size = min(target_width // len(watermark_text) * 2, target_height)
 
     font = ImageFont.truetype(font_path, font_size)
     text_width, text_height = font.getbbox(watermark_text)[2:]
+    print(f"Watermark text: image width and height: {image_size}. Text width and height, {text_width}, {text_height}")
     text_layer = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
 
     draw = ImageDraw.Draw(text_layer)
